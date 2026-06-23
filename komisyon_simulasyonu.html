@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PayPorter Komisyon Simülatörü</title>
+<style>
+:root{
+  --or:#EE7623;--dk:#323E48;--lt:#F4F6F8;--bd:#E2E7EC;
+  --gr:#16A34A;--rd:#DC2626;--bl:#2563EB;--wh:#FFFFFF;
+  --t1:#111827;--t2:#6B7280;--t3:#9CA3AF;
+  --r:8px;--sh:0 1px 3px rgba(0,0,0,0.06),0 4px 12px rgba(0,0,0,0.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;font-size:12px;background:var(--lt);color:var(--t1)}
+input,button{font-family:inherit}
+input::-webkit-inner-spin-button{display:none}
+
+/* ── HEADER ── */
+.hdr{background:var(--dk);padding:8px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--or);position:sticky;top:0;z-index:300}
+.hl{display:flex;align-items:center;gap:9px}
+.lsq{width:28px;height:28px;background:var(--or);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:12px;flex-shrink:0}
+.ht{color:#fff;font-size:14px;font-weight:700;line-height:1.2}
+.hs{color:rgba(255,255,255,0.38);font-size:9px;text-transform:uppercase;letter-spacing:.6px}
+.ver-badge{
+  display:inline-block;background:rgba(238,118,35,0.18);color:var(--or);
+  padding:1px 5px;border-radius:8px;font-size:8.5px;font-weight:700;
+  letter-spacing:.5px;margin-left:4px;vertical-align:middle;
+}
+.hr{display:flex;gap:6px;align-items:center}
+.smsg{font-size:10px;color:rgba(255,255,255,0.38);min-width:100px;text-align:right}
+.btn{border:none;padding:5px 11px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px;transition:.15s;white-space:nowrap}
+.btg{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.85)}
+.btg:hover{background:rgba(255,255,255,0.18)}
+.bto{background:var(--or);color:#fff}
+.bto:hover{background:#d4671f}
+#fi{display:none}
+
+/* ── GLOBAL BAR ── */
+.gb{background:var(--dk);padding:6px 16px 10px;border-bottom:1px solid rgba(255,255,255,0.07)}
+.gbr{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.gbs{display:flex;flex-direction:column;gap:3px}
+.gbl{color:rgba(255,255,255,0.35);font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+.gbcs{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.gc{background:rgba(255,255,255,0.08);border-radius:5px;padding:3px 8px;display:flex;align-items:center;gap:4px}
+.gc label{color:rgba(255,255,255,0.42);font-size:9.5px;white-space:nowrap}
+.gc input[type=number]{background:transparent;border:none;color:#fff;font-size:12px;font-weight:700;outline:none;text-align:right;width:62px}
+.gc input[type=text]{background:transparent;border:none;color:#fff;font-size:12px;font-weight:700;outline:none;width:40px}
+.gc-kur input[type=number]{width:76px}
+.gc-cur input[type=text]{color:var(--or);font-weight:800}
+.gc-fn{background:rgba(255,255,255,0.05)}
+.gc-fn input[type=text]{color:rgba(255,255,255,0.65);font-size:11px;font-weight:600;width:148px}
+
+/* amount chip delete (x) and add (+) buttons */
+.gc-amt{padding-right:4px}
+.gc-del{
+  background:transparent;border:none;color:rgba(255,255,255,0.4);
+  font-size:14px;font-weight:700;cursor:pointer;line-height:1;
+  width:16px;height:16px;display:flex;align-items:center;justify-content:center;
+  border-radius:3px;padding:0;margin-left:2px;transition:.12s;
+}
+.gc-del:hover{background:rgba(220,38,38,0.4);color:#fff}
+.gc-add{
+  background:rgba(238,118,35,0.85);border:none;color:#fff;
+  font-size:14px;font-weight:700;cursor:pointer;line-height:1;
+  width:24px;height:24px;display:flex;align-items:center;justify-content:center;
+  border-radius:5px;padding:0;transition:.12s;
+}
+.gc-add:hover{background:var(--or)}
+.gd{width:1px;background:rgba(255,255,255,0.1);align-self:stretch}
+
+/* ══════════════════════════════════════
+   MAIN — split: left = analysis, right = 2x2 scenarios
+══════════════════════════════════════ */
+.page{
+  display:grid;
+  grid-template-columns:1fr 2fr;
+  gap:10px;padding:10px;
+  align-items:start;
+  transition:grid-template-columns .25s ease;
+}
+.page.charts-closed{grid-template-columns:34px 1fr}
+.left-panel{position:sticky;top:128px;align-self:start}
+.right-panel{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+@media(max-width:1100px){
+  .page,.page.charts-closed{grid-template-columns:1fr}
+  .left-panel{position:static}
+}
+@media(max-width:640px){
+  .right-panel{grid-template-columns:1fr}
+}
+
+/* collapsed left panel: thin strip */
+.page.charts-closed .cp{height:auto}
+.page.charts-closed .cp-body,
+.page.charts-closed .cp-head h3,
+.page.charts-closed .cp-head p{display:none}
+.page.charts-closed .cp-head{padding:8px 6px;flex-direction:column;justify-content:flex-start;min-height:280px}
+.page.charts-closed .cp-head .cp-vlabel{
+  display:block;writing-mode:vertical-rl;transform:rotate(180deg);
+  color:#fff;font-size:11px;font-weight:700;letter-spacing:.6px;margin-top:6px;
+}
+.cp-vlabel{display:none}
+
+/* chart toggle button */
+.cp-toggle{
+  background:rgba(255,255,255,0.12);border:none;
+  color:#fff;cursor:pointer;border-radius:5px;
+  width:22px;height:22px;display:flex;align-items:center;justify-content:center;
+  transition:.15s;padding:0;flex-shrink:0;
+}
+.cp-toggle:hover{background:rgba(255,255,255,0.22)}
+.cp-toggle svg{width:13px;height:13px}
+
+/* ── SCENARIO CARD ── */
+.sc{background:var(--wh);border-radius:var(--r);border:1px solid var(--bd);border-top:3px solid var(--vc,#ccc);box-shadow:var(--sh);display:flex;flex-direction:column;transition:opacity .2s,border-color .2s}
+.sc.off{border-top-color:#CBD5E1 !important;opacity:.65}
+.sc.off .sc-dot{background:#9CA3AF !important}
+.sc.off .sc-name{color:#6B7280 !important}
+.sc.off .vcard-body,
+.sc.off .blk{filter:grayscale(.85)}
+.sc.off .blk:not(.blk-locked){pointer-events:none;user-select:none}
+.sc.off .blk input{background:#F3F4F6 !important}
+
+/* mini scenario toggle */
+.mtgl{
+  position:relative;width:30px;height:16px;border-radius:10px;
+  background:#D1D5DB;cursor:pointer;transition:.2s;flex-shrink:0;
+  border:none;padding:0;
+}
+.mtgl::after{
+  content:'';position:absolute;top:2px;left:2px;
+  width:12px;height:12px;border-radius:50%;background:#fff;
+  transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,0.2);
+}
+.mtgl.on{background:var(--vc)}
+.mtgl.on::after{transform:translateX(14px)}
+.sc-head{padding:8px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:7px;background:rgba(0,0,0,0.012)}
+.sc-dot{width:8px;height:8px;border-radius:50%;background:var(--vc);flex-shrink:0}
+.sc-name{border:none;outline:none;background:transparent;font-size:12px;font-weight:700;flex:1;min-width:0;color:var(--vc-n,var(--t1))}
+
+/* ── BLOCK inside card ── */
+.blk{padding:8px 12px;border-bottom:1px solid var(--bd)}
+.blk:last-child{border-bottom:none}
+.blk-title{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);margin-bottom:6px;display:flex;align-items:center;gap:4px;position:relative}
+.blk-title::after{content:'';flex:1;height:1px;background:var(--bd);order:99}
+
+/* ── PILLS ── */
+.pills{display:flex;gap:4px;flex-wrap:wrap}
+.pill{padding:2px 9px;border-radius:20px;border:1.5px solid var(--bd);background:#fff;cursor:pointer;font-size:10px;font-weight:600;color:var(--t2);transition:.12s;user-select:none;white-space:nowrap}
+.pill.on{border-color:var(--vc);background:var(--vc);color:#fff}
+
+/* ── PARAM AREA ── */
+.pa{background:var(--lt);border-radius:6px;padding:8px;border:1px solid var(--bd);display:flex;flex-direction:column;gap:6px}
+.pr{display:flex;gap:6px;align-items:end}
+.pg{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.pg label{font-size:9px;font-weight:600;color:var(--t2)}
+.pg input[type=number]{border:1.5px solid var(--bd);border-radius:5px;padding:4px 7px;font-size:11.5px;font-weight:600;color:var(--t1);outline:none;width:100%;background:#fff;transition:.12s}
+.pg input[type=number]:focus{border-color:var(--vc)}
+
+/* Tiered toggle */
+.tt{display:flex;align-items:center;justify-content:space-between;padding:4px 7px;background:#fff;border-radius:5px;border:1.5px solid var(--bd)}
+.tt-lbl{font-size:9.5px;font-weight:600;color:var(--t1);line-height:1.3}
+.tt-lbl small{display:block;font-size:8.5px;color:var(--t3);font-weight:400}
+.tg-grid{display:grid;gap:4px;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));margin-top:2px}
+.tg-cell{display:flex;flex-direction:column;gap:2px}
+.tg-cell label{font-size:8px;font-weight:600;color:var(--t3);text-align:center}
+.tg-cell input[type=number]{border:1.5px solid var(--bd);border-radius:4px;padding:3px 4px;font-size:11px;font-weight:700;color:var(--vc);text-align:center;outline:none;background:#fff;width:100%}
+.tg-cell input[type=number]:focus{border-color:var(--vc)}
+
+/* ── PTOGGLE ── */
+.pt{display:flex;border-radius:4px;overflow:hidden;border:1.5px solid var(--bd);background:#fff;flex-shrink:0}
+.pto{padding:2px 8px;font-size:9px;font-weight:600;color:var(--t2);cursor:pointer;user-select:none;white-space:nowrap;transition:.12s}
+.pto.on{background:var(--vc);color:#fff}
+
+/* ── KOM BLOCK ── */
+.kb{border:1px solid var(--bd);border-radius:6px;overflow:hidden;margin-bottom:6px}
+.kb:last-child{margin-bottom:0}
+.kb-head{background:var(--lt);padding:5px 8px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bd)}
+.kb-lbl{font-size:9.5px;font-weight:700;color:var(--t1)}
+.kb-body{padding:7px 8px;display:flex;flex-direction:column;gap:5px}
+.kb-row{display:flex;gap:5px;align-items:end}
+.kb-note{font-size:8.5px;color:var(--t3)}
+
+/* ── RESULTS TABLE ── */
+.rt-wrap{overflow-x:auto}
+table.rt{width:100%;border-collapse:collapse}
+table.rt th{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--t3);padding:3px 4px;text-align:right;border-bottom:1.5px solid var(--bd);background:var(--lt);white-space:nowrap}
+table.rt th:first-child{text-align:left}
+table.rt td{padding:4px 4px;text-align:right;font-size:9.5px;font-weight:600;border-bottom:1px solid var(--bd);white-space:nowrap}
+table.rt td:first-child{text-align:left;color:var(--t2);font-weight:500;font-size:9px}
+table.rt tr:last-child td{border-bottom:none}
+table.rt tr.fxr td{background:rgba(37,99,235,0.03);font-size:8.5px;color:#2563EB}
+.ta{color:var(--bl);font-weight:700}
+.tm{color:var(--or)}
+.tt2{color:var(--t1);font-weight:800}
+.th2{color:var(--t2)}
+.tn{font-size:10.5px;font-weight:800;color:var(--gr)}
+.tn.neg{color:var(--rd)}
+
+/* FX box */
+.fxb{background:rgba(37,99,235,0.05);border:1px solid rgba(37,99,235,0.14);border-radius:5px;padding:5px 8px;font-size:9px;color:#1d4ed8;display:flex;flex-direction:column;gap:2px;margin-top:4px}
+
+/* ══════════════════════════════════════
+   CHART PANEL — full width at bottom
+══════════════════════════════════════ */
+.cp{background:var(--wh);border-radius:var(--r);border:1px solid var(--bd);box-shadow:var(--sh);overflow:hidden}
+.cp-head{padding:10px 14px;background:var(--dk);display:flex;align-items:center;gap:10px}
+.cp-head .cp-head-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.cp-head h3{color:#fff;font-size:13px;font-weight:700}
+.cp-head p{color:rgba(255,255,255,0.35);font-size:9.5px}
+.cp-body{padding:14px 16px;display:grid;gap:16px}
+
+/* 4 amount sections side by side in chart */
+.ca-grid{display:grid;grid-template-columns:1fr;gap:14px}
+
+.ca-sec{display:flex;flex-direction:column;gap:8px}
+.ca-title{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t3)}
+
+.br{display:flex;align-items:center;gap:5px;margin-bottom:2px}
+.bn{font-size:8.5px;font-weight:700;width:66px;flex-shrink:0;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bt{flex:1;height:12px;background:var(--lt);border-radius:2px;overflow:hidden}
+.bf{height:100%;border-radius:2px;transition:width .3s;min-width:2px;display:flex;align-items:center;padding-left:4px}
+.bf span{font-size:7.5px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden}
+.bv{font-size:9px;font-weight:700;width:36px;text-align:right;flex-shrink:0}
+
+.sr{display:flex;gap:1px;height:16px;border-radius:3px;overflow:hidden;margin-bottom:1px}
+.ss{display:flex;align-items:center;justify-content:center;min-width:0;transition:flex .3s}
+.ss span{font-size:7px;color:#fff;font-weight:700;white-space:nowrap;overflow:hidden;padding:0 2px}
+.sl{font-size:8.5px;color:var(--t2);margin-bottom:1px;margin-top:3px}
+
+.leg{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.li{display:flex;align-items:center;gap:2px;font-size:8px;color:var(--t2)}
+.ld{width:7px;height:7px;border-radius:2px;flex-shrink:0}
+
+.cdiv{height:1px;background:var(--bd)}
+
+/* ── INFO TOOLTIP ── */
+.info-wrap{position:relative;display:inline-flex;margin-left:5px}
+.info-ico{
+  width:13px;height:13px;border-radius:50%;
+  background:var(--lt);border:1px solid var(--bd);
+  display:inline-flex;align-items:center;justify-content:center;
+  color:var(--t2);font-size:9px;font-weight:700;cursor:help;user-select:none;
+  transition:.15s;
+}
+.info-ico:hover{background:var(--vc);color:#fff;border-color:var(--vc)}
+.info-pop{
+  position:absolute;top:calc(100% + 6px);right:-4px;
+  background:var(--dk);color:#fff;
+  border-radius:6px;padding:9px 11px;
+  font-size:10.5px;font-weight:400;line-height:1.45;
+  width:240px;z-index:50;box-shadow:0 6px 24px rgba(0,0,0,0.25);
+  opacity:0;visibility:hidden;transform:translateY(-4px);
+  transition:opacity .15s,transform .15s,visibility .15s;
+  pointer-events:none;text-transform:none;letter-spacing:0;
+}
+.info-pop::before{
+  content:'';position:absolute;top:-4px;right:8px;
+  width:8px;height:8px;background:var(--dk);transform:rotate(45deg);
+}
+.info-wrap:hover .info-pop{opacity:1;visibility:visible;transform:translateY(0)}
+.info-pop dl{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;margin:0}
+.info-pop dt{font-weight:700;color:var(--or);white-space:nowrap}
+.info-pop dd{color:rgba(255,255,255,0.85)}
+.info-pop .ip-formula{
+  margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.15);
+  font-size:9.5px;color:rgba(255,255,255,0.65);
+}
+.info-pop .ip-formula b{color:#fff}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hl">
+    <div class="lsq">PP</div>
+    <div><div class="ht">PayPorter</div><div class="hs">Komisyon Simülatörü <span class="ver-badge">v0.7</span></div></div>
+  </div>
+  <div class="hr">
+    <span class="smsg" id="smsg"></span>
+    <button class="btn btg" onclick="exportJSON()">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      İndir JSON
+    </button>
+    <button class="btn btg" onclick="document.getElementById('fi').click()">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Yükle JSON
+    </button>
+    <input type="file" id="fi" accept=".json" onchange="importJSON(event)">
+    <button class="btn bto" onclick="saveAll()">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
+      Kaydet
+    </button>
+  </div>
+</div>
+
+<div class="gb"><div class="gbr" id="gbr"></div></div>
+
+<div class="page" id="page">
+  <div class="left-panel">
+    <div class="cp">
+      <div class="cp-head">
+        <button class="cp-toggle" onclick="toggleCharts()" id="cpToggleBtn" title="Karşılaştırmalı analizi gizle/göster">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" id="cpToggleIcon">
+            <polyline points="15,18 9,12 15,6"/>
+          </svg>
+        </button>
+        <div class="cp-head-text">
+          <h3>Karşılaştırmalı Analiz</h3>
+          <p>Tüm varyasyonlar — anlık güncelleme</p>
+        </div>
+        <span class="cp-vlabel">Karşılaştırmalı Analiz</span>
+      </div>
+      <div class="cp-body"><div class="ca-grid" id="cagrid"></div></div>
+    </div>
+  </div>
+  <div class="right-panel" id="cards"></div>
+</div>
+
+<script>
+/* ═══ CONSTANTS ═══ */
+const VC=['#3B82F6','#8B5CF6','#14B8A6','#F59E0B'];
+const MT=[
+  {k:'sabit',l:'Sabit $'},{k:'oran',l:'Oran %'},
+  {k:'sabit_oran',l:'Sabit+Oran'},{k:'fx',l:'FX'},
+  {k:'fx_sabit',l:'FX+Sabit'},{k:'fx_oran',l:'FX+Oran'},
+];
+
+/* ═══ STATE ═══ */
+function mkV(i){
+  const d=[
+    {name:'M Bank',   active:true, tip:'sabit',    sabit:3,  sabitK:false,sabitler:[3,3,3,3],  oran:0,  fx:0,   aT:'y',aO:.5, aB:'gonderim',tT:'y',tO:.25,tB:'masraf'},
+    {name:'Senaryo A',active:true, tip:'fx',       sabit:0,  sabitK:false,sabitler:[0,0,0,0],  oran:0,  fx:1.5, aT:'y',aO:.5, aB:'gonderim',tT:'y',tO:.25,tB:'masraf'},
+    {name:'Senaryo B',active:true, tip:'fx_sabit', sabit:1,  sabitK:false,sabitler:[1,1,1,1],  oran:0,  fx:1,   aT:'y',aO:.5, aB:'gonderim',tT:'y',tO:.25,tB:'masraf'},
+    {name:'Senaryo C',active:true, tip:'fx_oran',  sabit:0,  sabitK:false,sabitler:[0,0,0,0],  oran:.5, fx:1,   aT:'y',aO:.5, aB:'masraf',  tT:'y',tO:.25,tB:'masraf'},
+  ];return d[i];
+}
+let S={file:'PayPorter-Senaryo',amounts:[150,200,500,1000],kur:87.3,kurKodu:'KGS',chartsOpen:true,variants:[0,1,2,3].map(i=>mkV(i))};
+
+/* ═══ STORAGE ═══ */
+const STORE_KEY='pp_v7';
+function loadS(){try{const s=localStorage.getItem(STORE_KEY);if(s)S=JSON.parse(s);else{const old=localStorage.getItem('pp_v6');if(old)S=JSON.parse(old);}}catch(e){}}
+function saveAll(){localStorage.setItem(STORE_KEY,JSON.stringify(S));sm('Kaydedildi ✓','#16A34A')}
+function autoSave(){localStorage.setItem(STORE_KEY,JSON.stringify(S));sm('Otomatik kaydedildi','rgba(255,255,255,0.35)')}
+function sm(t,c){const e=document.getElementById('smsg');e.textContent=t;e.style.color=c;clearTimeout(e._t);e._t=setTimeout(()=>e.textContent='',3000)}
+function exportJSON(){const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=(S.file||'senaryo')+'.json';a.click();URL.revokeObjectURL(a.href)}
+function importJSON(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{S=JSON.parse(ev.target.result);ensureSchema();renderAll();sm('Yüklendi ✓','#16A34A')}catch{alert('Geçersiz JSON')}};r.readAsText(f);e.target.value=''}
+
+function ensureSchema(){
+  if(S.chartsOpen===undefined)S.chartsOpen=true;
+  S.variants.forEach(v=>{
+    if(v.active===undefined)v.active=true;
+    if(!v.sabitler)v.sabitler=S.amounts.map(()=>v.sabit||0);
+    while(v.sabitler.length<S.amounts.length)v.sabitler.push(v.sabit||0);
+  });
+}
+
+/* ═══ UI TOGGLES ═══ */
+function toggleCharts(){
+  S.chartsOpen=!S.chartsOpen;
+  document.getElementById('page').classList.toggle('charts-closed', !S.chartsOpen);
+  updateToggleIcon();
+  autoSave();
+}
+function toggleActive(vi){
+  S.variants[vi].active=!S.variants[vi].active;
+  renderAll();
+  autoSave();
+}
+function updateToggleIcon(){
+  const ic=document.getElementById('cpToggleIcon');if(!ic)return;
+  // open: arrow points left (◀), closed: arrow points right (▶)
+  ic.innerHTML = S.chartsOpen
+    ? '<polyline points="15,18 9,12 15,6"/>'
+    : '<polyline points="9,18 15,12 9,6"/>';
+  document.getElementById('cpToggleBtn').title = S.chartsOpen
+    ? 'Karşılaştırmalı analizi gizle'
+    : 'Karşılaştırmalı analizi göster';
+}
+
+/* ═══ CALC ═══ */
+function calc1(v,amount,ai){
+  const fxP=(+v.fx||0)/100;
+  const sabitV=v.sabitK&&v.sabitler?+(v.sabitler[ai]||0):(+v.sabit||0);
+  const oranV=(+v.oran||0)/100;
+  const isFxTip=['fx','fx_sabit','fx_oran'].includes(v.tip);
+  let nakit=0;
+  switch(v.tip){
+    case'sabit':nakit=sabitV;break;
+    case'oran':nakit=amount*oranV;break;
+    case'sabit_oran':nakit=sabitV+amount*oranV;break;
+    case'fx':nakit=0;break;
+    case'fx_sabit':nakit=sabitV;break;
+    case'fx_oran':nakit=amount*oranV;break;
+  }
+  const fxG=isFxTip?amount*fxP:0;
+  const hav=nakit+fxG;
+  const mTop=amount+nakit;
+  const efK=(+S.kur||1)*(isFxTip?(1-fxP):1);
+  const alTL=amount*efK;
+  const aBase=v.aB==='gonderim'?amount:hav;
+  const aKom=v.aT==='y'?aBase*((+v.aO||0)/100):(+v.aO||0);
+  const tBase=v.tB==='gonderim'?amount:hav;
+  const tKom=v.tT==='y'?tBase*((+v.tO||0)/100):(+v.tO||0);
+  const net=hav-aKom-tKom;
+  return{amount,nakit,fxG,hav,mTop,efK,alTL,aKom,tKom,net};
+}
+function calcV(v){return S.amounts.map((a,i)=>calc1(v,a,i))}
+
+/* ═══ GLOBAL BAR ═══ */
+function renderGB(){
+  const bar=document.getElementById('gbr');bar.innerHTML='';
+  // file
+  bar.appendChild(sec('Dosya Adı',`<div class="gc gc-fn"><label>📄</label><input type="text" value="${esc(S.file)}" placeholder="Dosya adı" onchange="S.file=this.value;autoSave()"></div>`));
+  bar.appendChild(gd());
+  // amounts
+  const canDelete = S.amounts.length > 1;
+  const ach=S.amounts.map((a,i)=>`<div class="gc gc-amt"><label>T${i+1}</label><input type="number" value="${a}" min="1" onchange="S.amounts[${i}]=+this.value||0;renderAll();autoSave()">${canDelete?`<button class="gc-del" title="Sil" onclick="removeAmount(${i})">×</button>`:''}</div>`).join('');
+  const addBtn = `<button class="gc-add" title="Yeni tutar ekle" onclick="addAmount()">+</button>`;
+  bar.appendChild(sec('Gönderim Tutarları ($)', ach + addBtn));
+  bar.appendChild(gd());
+  // kur
+  bar.appendChild(sec('Döviz Kuru (Ortak)',`
+    <div class="gc gc-kur"><label>1 USD =</label><input type="number" value="${S.kur}" min="0" step="0.01" onchange="S.kur=+this.value||0;renderAll();autoSave()"></div>
+    <div class="gc gc-cur"><label>Para</label><input type="text" value="${esc(S.kurKodu)}" onchange="S.kurKodu=this.value;renderAll();autoSave()"></div>
+  `));
+}
+function sec(lbl,html){const d=document.createElement('div');d.className='gbs';d.innerHTML=`<div class="gbl">${lbl}</div><div class="gbcs">${html}</div>`;return d}
+function gd(){const d=document.createElement('div');d.className='gd';return d}
+
+/* ═══ AMOUNT ADD/REMOVE ═══ */
+function addAmount(){
+  // Akıllı default: son tutarın 1.5 katı veya 100
+  const last = S.amounts[S.amounts.length-1] || 100;
+  const next = Math.round(last * 1.5 / 50) * 50 || 100;
+  S.amounts.push(next);
+  // Her variant'ın sabitler array'ine de yeni index ekle
+  S.variants.forEach(v=>{
+    if(!v.sabitler) v.sabitler = [];
+    v.sabitler.push(v.sabit || 0);
+  });
+  renderAll(); autoSave();
+}
+function removeAmount(i){
+  if(S.amounts.length <= 1) return;
+  S.amounts.splice(i,1);
+  S.variants.forEach(v=>{
+    if(v.sabitler) v.sabitler.splice(i,1);
+  });
+  renderAll(); autoSave();
+}
+
+/* ═══ CARDS ═══ */
+function renderCards(){
+  const row=document.getElementById('cards');row.innerHTML='';
+  [0,1,2,3].forEach(vi=>{
+    const v=S.variants[vi];const color=VC[vi];
+    const res=calcV(v);
+    const hasFx=['fx','fx_sabit','fx_oran'].includes(v.tip);
+    const hasSabit=['sabit','sabit_oran','fx_sabit'].includes(v.tip);
+    const hasOran=['oran','sabit_oran','fx_oran'].includes(v.tip);
+
+    const card=document.createElement('div');
+    card.className='sc' + (v.active===false?' off':'');
+    card.style.setProperty('--vc',color);
+    card.style.setProperty('--vc-n',vi===0?'#3B82F6':'var(--t1)');
+
+    // pills
+    const pills=MT.map(t=>`<div class="pill${v.tip===t.k?' on':''}" onclick="S.variants[${vi}].tip='${t.k}';renderAll();autoSave()">${t.l}</div>`).join('');
+
+    // params
+    let params='';
+    if(hasFx) params+=`<div class="pr"><div class="pg"><label>FX Marj (%)</label><input type="number" value="${v.fx}" min="0" step="0.1" onchange="S.variants[${vi}].fx=+this.value||0;renderAll();autoSave()"></div></div>`;
+    if(hasSabit){
+      params+=`<div class="tt">
+        <div class="tt-lbl">Kademeli Sabit<small>Her tutar için farklı</small></div>
+        <div class="pt">
+          <div class="pto${!v.sabitK?' on':''}" onclick="S.variants[${vi}].sabitK=false;renderAll();autoSave()">Tek</div>
+          <div class="pto${v.sabitK?' on':''}" onclick="S.variants[${vi}].sabitK=true;renderAll();autoSave()">Kademeli</div>
+        </div>
+      </div>`;
+      if(!v.sabitK){
+        params+=`<div class="pr"><div class="pg"><label>Sabit ($)</label><input type="number" value="${v.sabit}" min="0" step="0.01" onchange="S.variants[${vi}].sabit=+this.value||0;renderAll();autoSave()"></div></div>`;
+      } else {
+        const cells=S.amounts.map((a,i)=>`<div class="tg-cell"><label>$${f(a)}</label><input type="number" value="${v.sabitler&&v.sabitler[i]!==undefined?v.sabitler[i]:v.sabit}" min="0" step="0.01" onchange="S.variants[${vi}].sabitler[${i}]=+this.value||0;renderAll();autoSave()"></div>`).join('');
+        params+=`<div class="tg-grid">${cells}</div>`;
+      }
+    }
+    if(hasOran) params+=`<div class="pr"><div class="pg"><label>Oran (%)</label><input type="number" value="${v.oran}" min="0" step="0.01" onchange="S.variants[${vi}].oran=+this.value||0;renderAll();autoSave()"></div></div>`;
+    if(!params) params=`<div style="font-size:9px;color:var(--t3)">Bu tip için parametre yok.</div>`;
+
+    // kom blocks
+    const kom=(['a','t']).map(p=>{
+      const isA=p==='a';
+      const lbl=isA?'Aracı Kurum':'Temsilci';
+      const tip=isA?v.aT:v.tT; const oran=isA?v.aO:v.tO; const baz=isA?v.aB:v.tB;
+      const tK=isA?'aT':'tT'; const oK=isA?'aO':'tO'; const bK=isA?'aB':'tB';
+      const bn=baz==='gonderim'?'Gönderim tutarı üzerinden':'Gelir havuzu (Masraf + FX geliri) üzerinden';
+      return `<div class="kb">
+        <div class="kb-head"><span class="kb-lbl">${lbl}</span>
+          <div class="pt">
+            <div class="pto${tip==='y'?' on':''}" onclick="S.variants[${vi}].${tK}='y';renderAll();autoSave()">Yüzde %</div>
+            <div class="pto${tip==='s'?' on':''}" onclick="S.variants[${vi}].${tK}='s';renderAll();autoSave()">Sabit $</div>
+          </div>
+        </div>
+        <div class="kb-body">
+          <div class="kb-row">
+            <div class="pg"><label>${tip==='y'?'Oran (%)':'Tutar ($)'}</label><input type="number" value="${oran}" min="0" step="0.01" onchange="S.variants[${vi}].${oK}=+this.value||0;renderAll();autoSave()"></div>
+            <div style="display:flex;flex-direction:column;gap:2px;flex:1">
+              <label style="font-size:9px;font-weight:600;color:var(--t2)">Baz</label>
+              <div class="pt">
+                <div class="pto${baz==='gonderim'?' on':''}" onclick="S.variants[${vi}].${bK}='gonderim';renderAll();autoSave()">Gönderim</div>
+                <div class="pto${baz==='masraf'?' on':''}" onclick="S.variants[${vi}].${bK}='masraf';renderAll();autoSave()">Havuz</div>
+              </div>
+            </div>
+          </div>
+          <div class="kb-note">ℹ ${bn}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    // results table
+    const trows=res.map(r=>{
+      const fxRow=hasFx?`<tr class="fxr"><td colspan="2" style="padding-left:14px">↳ FX marj geliri</td><td></td><td style="color:#2563EB">$${f(r.fxG)}</td><td></td><td></td><td></td></tr>`:'';
+      return `<tr>
+        <td class="ta">$${f(r.amount)}</td>
+        <td class="tm">${r.nakit>0?'$'+f(r.nakit):(hasFx?'—':'$0.00')}</td>
+        <td class="tt2">$${f(r.mTop)}</td>
+        <td class="th2">$${f(r.hav)}</td>
+        <td class="th2">$${f(r.aKom)}</td>
+        <td class="th2">$${f(r.tKom)}</td>
+        <td class="tn${r.net<0?' neg':''}">$${f(r.net)}</td>
+      </tr>${fxRow}`;
+    }).join('');
+
+    const fxBox=hasFx?`<div class="fxb">${res.map(r=>`<div><b>$${f(r.amount)}:</b> FX $${f(r.fxG)} — Alıcı ${f(r.alTL)} ${esc(S.kurKodu)} <span style="opacity:.55">(${f(r.efK)})</span></div>`).join('')}</div>`:'';
+
+    card.innerHTML=`
+      <div class="sc-head blk-locked"><div class="sc-dot"></div><input class="sc-name" value="${esc(v.name)}" placeholder="Senaryo adı" onchange="S.variants[${vi}].name=this.value;renderAll();autoSave()"><button class="mtgl${v.active!==false?' on':''}" onclick="toggleActive(${vi})" title="${v.active!==false?'Aktif (kapatmak için tıkla)':'Pasif (açmak için tıkla)'}"></button></div>
+      <div class="blk"><div class="blk-title">Masraf Tipi</div><div class="pills">${pills}</div></div>
+      <div class="blk"><div class="blk-title">Parametreler</div><div class="pa">${params}</div></div>
+      <div class="blk"><div class="blk-title">Aracı Kurum & Temsilci</div>${kom}</div>
+      <div class="blk">
+        <div class="blk-title">
+          Sonuçlar
+          <span class="info-wrap">
+            <span class="info-ico">?</span>
+            <span class="info-pop">
+              <dl>
+                <dt>Gönderim</dt><dd>Müşterinin gönderdiği tutar</dd>
+                <dt>Masraf</dt><dd>Müşterinin nakit ödediği komisyon (sabit/oran)</dd>
+                <dt>Müş.Top.</dt><dd>Müşterinin toplam ödemesi = Gönderim + Masraf</dd>
+                <dt>Gelir Hav.</dt><dd>PP'nin işlettiği toplam gelir = Masraf + FX geliri</dd>
+                <dt>Aracı</dt><dd>Aracı kuruma giden komisyon</dd>
+                <dt>Tem.</dt><dd>Temsilciye giden komisyon</dd>
+                <dt>PP Net</dt><dd>PayPorter net kârı</dd>
+              </dl>
+              <div class="ip-formula">
+                <b>PP Net</b> = Gelir Hav. − Aracı − Temsilci
+              </div>
+            </span>
+          </span>
+        </div>
+        <div class="rt-wrap">
+          <table class="rt">
+            <thead><tr>
+              <th>Gönderim</th><th>Masraf</th><th>Müş.Top.</th>
+              <th>Gelir Hav.</th><th>Aracı</th><th>Tem.</th>
+              <th style="color:${color}">PP Net★</th>
+            </tr></thead>
+            <tbody>${trows}</tbody>
+          </table>
+        </div>
+        ${fxBox}
+      </div>
+    `;
+    row.appendChild(card);
+  });
+}
+
+/* ═══ CHARTS ═══ */
+function renderCharts(){
+  const grid=document.getElementById('cagrid');grid.innerHTML='';
+  // sadece aktif senaryolar grafiklere dahil edilir
+  const activeVariants=S.variants.map((v,vi)=>({v,vi})).filter(x=>x.v.active!==false);
+  if(activeVariants.length===0){
+    grid.innerHTML='<div style="font-size:11px;color:var(--t3);text-align:center;padding:20px">Aktif senaryo yok.<br>Karşılaştırma için en az bir senaryoyu aktif edin.</div>';
+    return;
+  }
+  S.amounts.forEach((amt,ai)=>{
+    const rows=activeVariants.map(({v,vi})=>({name:v.name||`S${vi+1}`,color:VC[vi],r:calc1(v,amt,ai)}));
+    const maxN=Math.max(...rows.map(x=>Math.abs(x.r.net)),0.001);
+    const sec=document.createElement('div');sec.className='ca-sec';
+    let h=`<div class="ca-title">$${f(amt)} → PP Net Kâr</div>`;
+    rows.forEach(x=>{
+      const pct=(Math.abs(x.r.net)/maxN)*100;const neg=x.r.net<0;
+      h+=`<div class="br">
+        <div class="bn" title="${esc(x.name)}">${esc(x.name)}</div>
+        <div class="bt"><div class="bf" style="width:${pct}%;background:${neg?'#DC2626':x.color}">${pct>22?`<span>$${f(x.r.net)}</span>`:''}</div></div>
+        <div class="bv" style="color:${neg?'#DC2626':x.color}">$${f(x.r.net)}</div>
+      </div>`;
+    });
+    h+=`<div class="ca-title" style="margin-top:8px">Dağılım</div>`;
+    rows.forEach(x=>{
+      const tot=x.r.hav||0.001;
+      const nP=Math.max((x.r.net/tot)*100,0);const aP=Math.max((x.r.aKom/tot)*100,0);const tP=Math.max((x.r.tKom/tot)*100,0);
+      h+=`<div class="sl">${esc(x.name)}</div><div class="sr">
+        <div class="ss" style="flex:${nP};background:${x.color}">${nP>16?`<span>$${f(x.r.net)}</span>`:''}</div>
+        <div class="ss" style="flex:${aP};background:#94A3B8">${aP>16?`<span>$${f(x.r.aKom)}</span>`:''}</div>
+        <div class="ss" style="flex:${tP};background:#CBD5E1">${tP>16?`<span>$${f(x.r.tKom)}</span>`:''}</div>
+      </div>`;
+    });
+    h+=`<div class="leg">
+      <div class="li"><div class="ld" style="background:#3B82F6"></div>PP Net</div>
+      <div class="li"><div class="ld" style="background:#94A3B8"></div>Aracı</div>
+      <div class="li"><div class="ld" style="background:#CBD5E1"></div>Temsilci</div>
+    </div>`;
+    sec.innerHTML=h;grid.appendChild(sec);
+  });
+}
+
+/* ═══ RENDER ALL ═══ */
+function renderAll(){renderGB();renderCards();renderCharts()}
+
+/* ═══ UTILS ═══ */
+function f(n){return isNaN(n)?'0.00':parseFloat(n).toFixed(2)}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+/* ═══ INIT ═══ */
+loadS();
+ensureSchema();
+document.getElementById('page').classList.toggle('charts-closed', !S.chartsOpen);
+updateToggleIcon();
+renderAll();
+</script>
+</body>
+</html>
