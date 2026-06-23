@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PayPorter BD Tools</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --orange:   #EE7623;
+  --orange-d: #D4651A;
+  --orange-l: #FFF0E6;
+  --dark:     #1E2730;
+  --dark2:    #252F39;
+  --anthracite: #323E48;
+  --slate:    #4A5568;
+  --muted:    #718096;
+  --border:   #E2E8F0;
+  --bg:       #F7F9FB;
+  --white:    #FFFFFF;
+  --green:    #27AE60;
+  --green-l:  #E8F8EE;
+  --red:      #E53E3E;
+  --blue:     #2B6CB0;
+  --blue-l:   #EBF4FF;
+  --sidebar-w: 220px;
+  --header-h:  52px;
+  --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); background: var(--bg); color: var(--anthracite); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+/* ── HEADER ── */
+header {
+  height: var(--header-h);
+  background: var(--dark);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  flex-shrink: 0;
+  z-index: 200;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+}
+.logo { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 800; color: #fff; letter-spacing: -.3px; white-space: nowrap; }
+.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--orange); flex-shrink: 0; }
+.logo-sep { width: 1px; height: 20px; background: rgba(255,255,255,.15); margin: 0 4px; }
+.header-tool { font-size: 12px; color: #9AA5B4; font-weight: 400; }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.header-badge { background: rgba(238,118,35,.2); color: var(--orange); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; letter-spacing: .3px; text-transform: uppercase; }
+#header-meta { font-size: 11px; color: #9AA5B4; }
+
+/* ── BODY LAYOUT ── */
+.app-body { display: flex; flex: 1; overflow: hidden; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--dark2);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(255,255,255,.06);
+  overflow-y: auto;
+}
+.sidebar-section { padding: 20px 12px 8px; }
+.sidebar-label { font-size: 9px; font-weight: 700; color: #5A6A7A; text-transform: uppercase; letter-spacing: 1px; padding: 0 8px; margin-bottom: 6px; }
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #8A9BB0;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all .15s;
+  margin-bottom: 2px;
+  user-select: none;
+}
+.nav-item:hover { background: rgba(255,255,255,.06); color: #C8D8E8; }
+.nav-item.active { background: rgba(238,118,35,.15); color: var(--orange); font-weight: 600; }
+.nav-item.active .nav-icon { opacity: 1; }
+.nav-icon { font-size: 15px; opacity: .6; flex-shrink: 0; }
+.nav-badge { margin-left: auto; background: var(--orange); color: #fff; font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 20px; }
+.nav-item.coming-soon { opacity: .4; cursor: default; }
+.nav-item.coming-soon:hover { background: transparent; color: #8A9BB0; }
+.soon-tag { margin-left: auto; font-size: 9px; color: #5A6A7A; font-weight: 600; letter-spacing: .3px; }
+.sidebar-bottom { margin-top: auto; padding: 16px 12px; border-top: 1px solid rgba(255,255,255,.06); }
+.sidebar-version { font-size: 10px; color: #3A4A5A; text-align: center; }
+
+/* ── MAIN AREA ── */
+.main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+/* ── PAGE ── */
+.page { display: none; flex-direction: column; flex: 1; }
+.page.active { display: flex; }
+
+/* ── UPLOAD SCREEN ── */
+.upload-screen {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+}
+.upload-card {
+  background: var(--white);
+  border: 2px dashed var(--border);
+  border-radius: 20px;
+  padding: 56px 72px;
+  text-align: center;
+  max-width: 480px;
+  width: 100%;
+  transition: border-color .2s, box-shadow .2s;
+}
+.upload-card:hover, .upload-card.drag-over { border-color: var(--orange); box-shadow: 0 0 0 4px var(--orange-l); }
+.upload-icon { width: 64px; height: 64px; background: var(--orange-l); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 28px; }
+.upload-card h2 { font-size: 19px; font-weight: 700; margin-bottom: 8px; }
+.upload-card p { font-size: 13px; color: var(--muted); margin-bottom: 24px; line-height: 1.6; }
+.btn-upload { display: inline-block; background: var(--orange); color: #fff; padding: 11px 28px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: background .15s; }
+.btn-upload:hover { background: var(--orange-d); }
+.upload-hint { margin-top: 14px; font-size: 11px; color: #A0AEC0; }
+
+/* ── DASHBOARD CONTENT ── */
+.dash-content { display: none; flex-direction: column; flex: 1; padding: 20px 24px 48px; }
+.dash-content.visible { display: flex; }
+
+/* ── PARAMS BAR ── */
+.params-bar {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 13px 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.04);
+}
+.params-bar label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; white-space: nowrap; }
+.param-group { display: flex; align-items: center; gap: 8px; }
+.param-group span { font-size: 12px; color: var(--slate); white-space: nowrap; }
+.param-input { width: 84px; padding: 5px 9px; border: 1.5px solid var(--border); border-radius: 7px; font-size: 13px; font-family: var(--font); color: var(--anthracite); transition: border-color .15s; text-align: right; }
+.param-input:focus { outline: none; border-color: var(--orange); }
+.params-divider { width: 1px; height: 28px; background: var(--border); }
+.btn-recalc { background: var(--orange); color: #fff; border: none; padding: 7px 18px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; margin-left: auto; transition: background .15s; white-space: nowrap; }
+.btn-recalc:hover { background: var(--orange-d); }
+.btn-reload { background: transparent; border: 1.5px solid var(--border); color: var(--slate); padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; white-space: nowrap; }
+.btn-reload:hover { border-color: var(--orange); color: var(--orange); }
+
+/* ── KPI ── */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.kpi { background: var(--white); border-radius: 12px; padding: 16px 16px 14px; border: 1px solid var(--border); box-shadow: 0 1px 4px rgba(0,0,0,.04); position: relative; overflow: hidden; }
+.kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--kpi-color, var(--orange)); }
+.kpi-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+.kpi-value { font-size: 22px; font-weight: 800; color: var(--anthracite); line-height: 1; margin-bottom: 3px; }
+.kpi-sub { font-size: 11px; color: var(--muted); }
+.kpi-icon { position: absolute; top: 14px; right: 14px; font-size: 18px; opacity: .12; }
+
+/* ── CHART GRID ── */
+.chart-row { display: grid; gap: 14px; margin-bottom: 14px; }
+.chart-row.cols-3 { grid-template-columns: 2fr 1fr 1fr; }
+.chart-row.cols-2 { grid-template-columns: 1fr 1fr; }
+.chart-row.cols-2b { grid-template-columns: 3fr 2fr; }
+@media (max-width: 1000px) { .chart-row.cols-3, .chart-row.cols-2, .chart-row.cols-2b { grid-template-columns: 1fr; } }
+
+.chart-card { background: var(--white); border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 1px 4px rgba(0,0,0,.04); padding: 16px 20px; position: relative; }
+.chart-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+.chart-title { font-size: 13px; font-weight: 700; color: var(--anthracite); }
+.chart-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.btn-expand {
+  width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--bg); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: var(--muted); transition: all .15s; flex-shrink: 0; margin-left: 8px; margin-top: -2px;
+}
+.btn-expand:hover { border-color: var(--orange); color: var(--orange); background: var(--orange-l); }
+.chart-wrap { position: relative; }
+
+/* ── SECTION TITLE ── */
+.section-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 12px; padding-left: 2px; }
+
+/* ── TABLES ── */
+.gelir-table, .tx-table, .bank-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.gelir-table th, .tx-table th, .bank-table th {
+  text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .5px; color: var(--muted); padding: 7px 12px;
+  border-bottom: 1.5px solid var(--border); white-space: nowrap;
+  background: var(--bg);
+}
+.gelir-table td, .tx-table td, .bank-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--anthracite); vertical-align: middle; }
+.gelir-table tr:last-child td, .bank-table tr:last-child td { border-bottom: none; }
+.gelir-table tr:hover td, .tx-table tr:hover td, .bank-table tr:hover td { background: #FFFAF6; }
+
+.badge { display: inline-block; padding: 2px 7px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.badge-masraf { background: var(--orange-l); color: var(--orange-d); }
+.badge-param  { background: var(--blue-l); color: var(--blue); }
+.num { font-weight: 600; font-variant-numeric: tabular-nums; }
+.num-green { color: var(--green); }
+.num-orange { color: var(--orange-d); }
+.prog-wrap { display: flex; align-items: center; gap: 8px; }
+.prog-bar { flex: 1; height: 5px; background: var(--border); border-radius: 99px; overflow: hidden; min-width: 60px; }
+.prog-fill { height: 100%; border-radius: 99px; background: var(--orange); transition: width .4s; }
+.yon-c { color: var(--green); font-weight: 700; }
+.yon-d { color: var(--red); font-weight: 700; }
+
+/* ── TX TABLE EXTRAS ── */
+.table-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+.table-search { padding: 7px 13px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 12px; font-family: var(--font); width: 240px; color: var(--anthracite); transition: border-color .15s; }
+.table-search:focus { outline: none; border-color: var(--orange); }
+.tx-table-wrap { overflow-x: auto; }
+.pagination { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: 10px; font-size: 11px; color: var(--muted); flex-wrap: wrap; }
+.page-btn { padding: 4px 9px; border: 1px solid var(--border); border-radius: 5px; background: var(--white); color: var(--slate); cursor: pointer; font-size: 11px; transition: all .15s; }
+.page-btn:hover { border-color: var(--orange); color: var(--orange); }
+.page-btn.active { background: var(--orange); border-color: var(--orange); color: #fff; }
+.page-btn:disabled { opacity: .4; cursor: default; }
+
+/* ── FULLSCREEN MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(20,28,36,.75); z-index: 1000;
+  display: none; align-items: center; justify-content: center; padding: 24px;
+  backdrop-filter: blur(3px);
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: var(--white); border-radius: 16px; width: 100%; max-width: 1100px;
+  max-height: 90vh; display: flex; flex-direction: column;
+  box-shadow: 0 24px 64px rgba(0,0,0,.35);
+  animation: modalIn .2s ease;
+}
+@keyframes modalIn { from { opacity:0; transform: scale(.96); } to { opacity:1; transform: scale(1); } }
+.modal-head {
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.modal-head-title { font-size: 15px; font-weight: 700; }
+.modal-head-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.btn-modal-close {
+  width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--bg); cursor: pointer; font-size: 16px; color: var(--muted);
+  display: flex; align-items: center; justify-content: center; transition: all .15s;
+}
+.btn-modal-close:hover { border-color: var(--red); color: var(--red); }
+.modal-body { padding: 20px 24px; flex: 1; overflow: auto; }
+.modal-chart-wrap { position: relative; height: 480px; }
+
+/* ── LOADING ── */
+.loading { position: fixed; inset: 0; background: rgba(50,62,72,.5); display: none; align-items: center; justify-content: center; z-index: 999; }
+.loading.show { display: flex; }
+.loading-box { background: var(--white); border-radius: 14px; padding: 28px 44px; text-align: center; font-size: 13px; font-weight: 600; color: var(--anthracite); }
+.spin { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--orange); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 14px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── BANK RANK LIST ── */
+.bank-rank { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.bank-rank:last-child { border-bottom: none; }
+.bank-rank-num { width: 22px; height: 22px; border-radius: 50%; background: var(--orange-l); color: var(--orange-d); font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.bank-rank-name { flex: 1; font-size: 13px; font-weight: 600; }
+.bank-rank-adet { font-size: 12px; color: var(--muted); min-width: 60px; text-align: right; }
+.bank-rank-bar { flex: 2; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    PayPorter
+    <div class="logo-sep"></div>
+    <span class="header-tool">Business Development Tools</span>
+  </div>
+  <div class="header-right">
+    <span id="header-meta"></span>
+    <span class="header-badge">v1.0</span>
+  </div>
+</header>
+
+<!-- BODY -->
+<div class="app-body">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Analiz Araçları</div>
+      <div class="nav-item active" data-page="minted" onclick="switchPage('minted')">
+        <span class="nav-icon">🏦</span>
+        Minted Cüzdan Analizi
+        <span class="nav-badge">1</span>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Yakında</div>
+      <div class="nav-item coming-soon">
+        <span class="nav-icon">📊</span>
+        Ria Koridor Analizi
+        <span class="soon-tag">SOON</span>
+      </div>
+      <div class="nav-item coming-soon">
+        <span class="nav-icon">💳</span>
+        Kart Harcama Raporu
+        <span class="soon-tag">SOON</span>
+      </div>
+      <div class="nav-item coming-soon">
+        <span class="nav-icon">🌍</span>
+        Yurtdışı Transfer Analizi
+        <span class="soon-tag">SOON</span>
+      </div>
+      <div class="nav-item coming-soon">
+        <span class="nav-icon">⚙️</span>
+        Fiyatlama Simülasyonu
+        <span class="soon-tag">SOON</span>
+      </div>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="sidebar-version">PayPorter BD Tools © 2026</div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- PAGE: Minted Cüzdan Analizi -->
+    <div class="page active" id="page-minted">
+
+      <!-- UPLOAD STATE -->
+      <div class="upload-screen" id="minted-upload">
+        <div class="upload-card" id="drop-zone">
+          <div class="upload-icon">📊</div>
+          <h2>Minted Cüzdan Raporu</h2>
+          <p>PayPorter işlem Excel raporunu sürükleyip bırakın<br>veya bilgisayarınızdan seçin.</p>
+          <button class="btn-upload" onclick="document.getElementById('file-input').click()">Dosya Seç</button>
+          <input type="file" id="file-input" accept=".xlsx,.xls">
+          <div class="upload-hint">Desteklenen format: .xlsx / .xls — PayPorter standart raporu</div>
+        </div>
+      </div>
+
+      <!-- DASHBOARD STATE -->
+      <div class="dash-content" id="minted-dash">
+
+        <!-- PARAMS -->
+        <div class="params-bar">
+          <label>🎛 Gelir Parametreleri</label>
+          <div class="params-divider"></div>
+          <div class="param-group">
+            <span>Ödeme Alma %</span>
+            <input class="param-input" id="p-odeme-alma" type="number" value="0.1" step="0.01" min="0">
+          </div>
+          <div class="param-group">
+            <span>Yurtdışı Transfer %</span>
+            <input class="param-input" id="p-yurtdisi" type="number" value="0.1" step="0.01" min="0">
+          </div>
+          <div class="params-divider"></div>
+          <div class="param-group">
+            <span>Kart Harcama %</span>
+            <input class="param-input" id="p-kart" type="number" value="0.6" step="0.01" min="0">
+          </div>
+          <div class="params-divider"></div>
+          <div class="param-group">
+            <span>Fiziksel Kart (₺ sabit)</span>
+            <input class="param-input" id="p-fiziksel" type="number" value="20" step="1" min="0">
+          </div>
+          <div class="params-divider"></div>
+          <button class="btn-recalc" onclick="recalcAndRender()">↻ Yeniden Hesapla</button>
+          <button class="btn-reload" onclick="reloadFile()">📂 Yeni Excel</button>
+        </div>
+
+        <!-- KPI -->
+        <div class="section-title">Genel Bakış</div>
+        <div class="kpi-grid" id="kpi-grid"></div>
+
+        <!-- CHARTS ROW 1: Saatlik -->
+        <div class="chart-row cols-3">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div><div class="chart-title">Saatlik İşlem Hacmi</div><div class="chart-sub">Günün hangi saatinde ne kadar işlem yapıldı</div></div>
+              <button class="btn-expand" onclick="expandChart('chart-hourly-vol','Saatlik İşlem Hacmi','Günün hangi saatinde ne kadar işlem yapıldı')">⛶</button>
+            </div>
+            <div class="chart-wrap" style="height:200px"><canvas id="chart-hourly-vol"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header">
+              <div><div class="chart-title">Saatlik Adet</div><div class="chart-sub">İşlem yoğunluğu saate göre</div></div>
+              <button class="btn-expand" onclick="expandChart('chart-hourly-cnt','Saatlik İşlem Adedi','İşlem yoğunluğu saate göre')">⛶</button>
+            </div>
+            <div class="chart-wrap" style="height:200px"><canvas id="chart-hourly-cnt"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header">
+              <div><div class="chart-title">Saatlik Gelir</div><div class="chart-sub">Tahakkuk eden toplam gelir (₺)</div></div>
+              <button class="btn-expand" onclick="expandChart('chart-hourly-rev','Saatlik Gelir','Tahakkuk eden toplam gelir (₺)')">⛶</button>
+            </div>
+            <div class="chart-wrap" style="height:200px"><canvas id="chart-hourly-rev"></canvas></div>
+          </div>
+        </div>
+
+        <!-- CHARTS ROW 2: Tip dağılımı + Banka analizi -->
+        <div class="chart-row cols-2b">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div><div class="chart-title">EFT Banka Dağılımı — Kurumsal Cüzdandan</div><div class="chart-sub">Hangi bankaya ne kadar EFT gönderildi</div></div>
+              <button class="btn-expand" onclick="expandChart('chart-bank','EFT Banka Dağılımı','Kurumsal cüzdandan gönderilen EFT işlemlerinin banka bazında dağılımı')">⛶</button>
+            </div>
+            <div class="chart-wrap" style="height:220px"><canvas id="chart-bank"></canvas></div>
+          </div>
+          <div class="chart-card" style="display:flex;flex-direction:column;">
+            <div class="chart-header">
+              <div><div class="chart-title">Banka Sıralaması</div><div class="chart-sub">İşlem adedine göre</div></div>
+            </div>
+            <div id="bank-rank-list" style="flex:1;overflow-y:auto;"></div>
+          </div>
+        </div>
+
+        <!-- CHARTS ROW 3: Tip dağılımı -->
+        <div class="chart-row cols-2">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div><div class="chart-title">İşlem Tipi — Adet Dağılımı</div><div class="chart-sub">Tamamlanan finansal işlemler</div></div>
+              <button class="btn-expand" onclick="expandChart('chart-type-cnt','İşlem Tipi Dağılımı — Adet','Tamamlanan finansal işlemler')">⛶</button>
+            </div>
+            <div class="chart-wrap" style="height:220px"><canvas id="chart-type-cnt"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header">
+              <div><div class="chart-title">İşlem Tipi — Hacim (₺)</div><div class="chart-sub">Her işlem tipinin toplam TL hacmi</div></div>
+              <button class="btn-expand" onclick="expandChart('chart-type-vol','İşlem Tipi Dağılımı — Hacim','Her işlem tipinin toplam TL hacmi')">⛶</button>
+            </div>
+            <div class="chart-wrap" style="height:220px"><canvas id="chart-type-vol"></canvas></div>
+          </div>
+        </div>
+
+        <!-- GELİR TABLOSU -->
+        <div class="chart-card" style="margin-bottom:14px">
+          <div class="chart-header">
+            <div><div class="chart-title">Gelir Kırılımı</div><div class="chart-sub">Her işlem tipinin gelire katkısı ve hesaplama yöntemi</div></div>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="gelir-table">
+              <thead>
+                <tr>
+                  <th>İşlem Tipi</th><th>Yöntem</th>
+                  <th style="text-align:right">Adet</th>
+                  <th style="text-align:right">Toplam Hacim (₺)</th>
+                  <th style="text-align:right">Masraf Geliri (₺)</th>
+                  <th style="text-align:right">Parametre Geliri (₺)</th>
+                  <th style="text-align:right">Toplam Gelir (₺)</th>
+                  <th>Hacim Payı</th>
+                </tr>
+              </thead>
+              <tbody id="gelir-tbody"></tbody>
+              <tfoot id="gelir-tfoot"></tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- TX TABLOSU -->
+        <div class="chart-card">
+          <div class="table-header">
+            <div><div class="chart-title">İşlem Detayları</div><div class="chart-sub">Tüm tamamlanan finansal işlemler</div></div>
+            <input class="table-search" id="tx-search" placeholder="İşlem adı, açıklama ara…" oninput="filterTable()">
+          </div>
+          <div class="tx-table-wrap">
+            <table class="tx-table">
+              <thead>
+                <tr>
+                  <th>Saat</th><th>İşlem Tipi</th><th>Açıklama</th>
+                  <th style="text-align:right">Tutar (₺)</th>
+                  <th style="text-align:right">Masraf (₺)</th>
+                  <th>Yön</th>
+                  <th style="text-align:right">Hesaplanan Gelir (₺)</th>
+                </tr>
+              </thead>
+              <tbody id="tx-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="pagination"></div>
+        </div>
+
+      </div><!-- /dash-content -->
+    </div><!-- /page-minted -->
+
+  </main>
+</div><!-- /app-body -->
+
+<!-- LOADING -->
+<div class="loading" id="loading">
+  <div class="loading-box">
+    <div class="spin"></div>
+    Excel okunuyor, hesaplanıyor…
+  </div>
+</div>
+
+<!-- FULLSCREEN MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <div>
+        <div class="modal-head-title" id="modal-title"></div>
+        <div class="modal-head-sub" id="modal-sub"></div>
+      </div>
+      <button class="btn-modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-chart-wrap">
+        <canvas id="modal-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── STATE ──────────────────────────────────────────────
+let RAW = [], FILTERED = [];
+let PAGE = 1;
+const PER_PAGE = 25;
+let charts = {};
+let modalChart = null;
+let chartConfigs = {}; // store config per chart id for modal
+
+// ─── SIDEBAR NAV ────────────────────────────────────────
+function switchPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item[data-page]').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id)?.classList.add('active');
+  document.querySelector(`.nav-item[data-page="${id}"]`)?.classList.add('active');
+}
+
+// ─── PARAMS ─────────────────────────────────────────────
+function getParams() {
+  return {
+    odemeAlma: parseFloat(document.getElementById('p-odeme-alma').value) / 100,
+    yurtdisi:  parseFloat(document.getElementById('p-yurtdisi').value)   / 100,
+    kart:      parseFloat(document.getElementById('p-kart').value)       / 100,
+    fiziksel:  parseFloat(document.getElementById('p-fiziksel').value),
+  };
+}
+
+// ─── GELİR HESAPLA ──────────────────────────────────────
+function calcGelir(row, p) {
+  const t = row.tutar || 0, m = row.masraf || 0;
+  let par = 0;
+  if      (row.islem_adi === 'Ödeme Alma')                                   par = t * p.odemeAlma;
+  else if (row.islem_adi === 'Yurtdışı Banka Hesabına Para Gönderme')        par = t * p.yurtdisi;
+  else if (row.islem_adi === 'Kart Harcama')                                 par = t * p.kart;
+  else if (row.islem_adi === 'Fiziksel Kart Edinimi')                        par = p.fiziksel;
+  return { masraf: m, parametre: +par.toFixed(4), total: +(m + par).toFixed(4) };
+}
+
+// ─── BANKA AYIKLA (açıklamadan) ──────────────────────────
+function extractBank(aciklama) {
+  const a = aciklama.toUpperCase();
+  const banks = [
+    ['Ziraat','ZİRAAT','ZİRAAT BANKASI'],['Garanti','GARANTİ','GARANTİ BBVA'],
+    ['İş Bankası','İŞ BANKASI','ISBANK'],['Akbank','AKBANK'],
+    ['Yapı Kredi','YAPI KREDİ','YKB'],['Halkbank','HALKBANK'],
+    ['Vakıfbank','VAKIFBANK','VAKIF'],['Denizbank','DENİZBANK'],
+    ['QNB Finansbank','FİNANSBANK','QNB'],['TEB','TEB'],
+    ['ING','ING BANK'],['HSBC','HSBC'],['Odeabank','ODEABANK'],
+    ['Şekerbank','ŞEKERBANK'],['Fibabanka','FİBABANKA'],
+    ['Burgan','BURGAN'],['Alternatifbank','ALTERNATİF'],
+    ['ICBC Turkey','ICBC'],['Anadolubank','ANADOLUBANK'],
+  ];
+  for (const [display, ...keys] of banks) {
+    if (keys.some(k => a.includes(k.toUpperCase()))) return display;
+  }
+  // Açıklamada "BANKA" geçiyorsa son kelimeyi al
+  if (a.includes('BANKA')) {
+    const parts = aciklama.trim().split(/\s+/);
+    const idx = parts.findIndex(p => p.toUpperCase().includes('BANKA'));
+    if (idx > 0) return parts[idx - 1] + ' ' + parts[idx];
+  }
+  return 'Diğer';
+}
+
+// ─── FILE UPLOAD ────────────────────────────────────────
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) processFile(e.target.files[0]); });
+
+function reloadFile() {
+  document.getElementById('minted-dash').classList.remove('visible');
+  document.getElementById('minted-upload').style.display = 'flex';
+  fileInput.value = '';
+  destroyCharts();
+  RAW = [];
+  document.getElementById('header-meta').textContent = '';
+}
+
+function processFile(file) {
+  document.getElementById('loading').classList.add('show');
+  setTimeout(() => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        parseAndBuild(json, file.name);
+      } catch(err) {
+        document.getElementById('loading').classList.remove('show');
+        alert('Excel okunamadı: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }, 50);
+}
+
+function parseAndBuild(json, fname) {
+  const COL = {
+    islem_adi: ['İşlem Adı','Islem Adi'],
+    durum:     ['Durum'],
+    tutar:     ['Tutar'],
+    masraf:    ['Masraf Tutar','Masraf'],
+    saat:      ['transactionQuery.table.trnTime','İşlem Saati','Saat'],
+    yon:       ['İşlem Yönü','Islem Yonu'],
+    aciklama:  ['İşlem Açıklaması','Aciklama'],
+    finansal:  ['Finansal'],
+  };
+  function gv(row, keys) { for (const k of keys) if (row[k] !== undefined && row[k] !== '') return row[k]; return ''; }
+
+  RAW = json.map(r => ({
+    islem_adi: String(gv(r, COL.islem_adi)),
+    durum:     String(gv(r, COL.durum)),
+    tutar:     parseFloat(gv(r, COL.tutar)) || 0,
+    masraf:    parseFloat(gv(r, COL.masraf)) || 0,
+    saat:      String(gv(r, COL.saat)).slice(0,5),
+    saat_h:    parseInt(String(gv(r, COL.saat)).slice(0,2)) || 0,
+    yon:       String(gv(r, COL.yon)),
+    aciklama:  String(gv(r, COL.aciklama)),
+    finansal:  String(gv(r, COL.finansal)),
+  })).filter(r => r.durum === 'Islem Tamamlandi' && r.finansal === 'Evet');
+
+  FILTERED = [...RAW];
+  document.getElementById('header-meta').textContent = fname + ' · ' + RAW.length + ' finansal işlem';
+  document.getElementById('loading').classList.remove('show');
+  document.getElementById('minted-upload').style.display = 'none';
+  document.getElementById('minted-dash').classList.add('visible');
+
+  recalcAndRender();
+}
+
+// ─── MAIN RENDER ────────────────────────────────────────
+function recalcAndRender() {
+  const p = getParams();
+  destroyCharts();
+  buildKPI(p);
+  buildHourlyCharts(p);
+  buildBankChart();
+  buildTypeCharts();
+  buildGelirTable(p);
+  PAGE = 1;
+  FILTERED = [...RAW];
+  document.getElementById('tx-search').value = '';
+  renderTxTable(p);
+}
+
+// ─── KPI ────────────────────────────────────────────────
+function buildKPI(p) {
+  const hacim   = RAW.reduce((s,r) => s+r.tutar, 0);
+  const masraf  = RAW.reduce((s,r) => s+r.masraf, 0);
+  const param   = RAW.reduce((s,r) => s+calcGelir(r,p).parametre, 0);
+  const gelir   = masraf + param;
+  const marj    = hacim > 0 ? (gelir/hacim*100) : 0;
+  const eftSayisi = RAW.filter(r => r.islem_adi === 'Yurtiçi Banka Hesabına Transfer').length;
+
+  const kpis = [
+    { label:'İşlem Adedi',      value: fmt0(RAW.length),    sub:'Finansal, tamamlanan',     icon:'📋', c:'#EE7623' },
+    { label:'Toplam Hacim',     value:'₺'+fmtK(hacim),      sub:'Tüm işlemler toplamı',     icon:'💰', c:'#2B6CB0' },
+    { label:'Masraf Geliri',    value:'₺'+fmt2(masraf),      sub:'Tahsil edilen masraflar',  icon:'⚙️', c:'#D4651A' },
+    { label:'Parametre Geliri', value:'₺'+fmt2(param),       sub:'Oransal + sabit komisyon', icon:'📈', c:'#27AE60' },
+    { label:'Toplam Gelir',     value:'₺'+fmt2(gelir),       sub:'Masraf + Parametre',       icon:'✅', c:'#27AE60' },
+    { label:'Kar Marjı',        value:'%'+marj.toFixed(4),   sub:'Gelir / Toplam Hacim',     icon:'📊', c:'#805AD5' },
+    { label:'EFT Sayısı',       value: fmt0(eftSayisi),       sub:'Yurtiçi banka transferi',  icon:'🏦', c:'#2C7A7B' },
+  ];
+  document.getElementById('kpi-grid').innerHTML = kpis.map(k => `
+    <div class="kpi" style="--kpi-color:${k.c}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-sub">${k.sub}</div>
+      <div class="kpi-icon">${k.icon}</div>
+    </div>`).join('');
+}
+
+// ─── HOURLY ─────────────────────────────────────────────
+function buildHourlyCharts(p) {
+  const h24 = Array.from({length:24},(_,i)=>i);
+  const bh = {};
+  h24.forEach(h => bh[h] = {adet:0,hacim:0,gelir:0});
+  RAW.forEach(r => {
+    const h = r.saat_h;
+    if (bh[h]) { bh[h].adet++; bh[h].hacim+=r.tutar; bh[h].gelir+=calcGelir(r,p).total; }
+  });
+  const labels = h24.map(h => String(h).padStart(2,'0')+':00');
+  const vols = h24.map(h=>bh[h].hacim), cnts = h24.map(h=>bh[h].adet), revs = h24.map(h=>bh[h].gelir);
+
+  const cfgVol = lineConfig(labels, vols, '#2B6CB0', 'rgba(43,108,176,.15)', v=>'₺'+fmtK(v));
+  const cfgCnt = barConfig(labels, cnts, '#EE7623', v=>v+' işlem');
+  const cfgRev = lineConfig(labels, revs, '#27AE60', 'rgba(39,174,96,.15)', v=>'₺'+fmt2(v));
+
+  charts.hourlyVol = new Chart(document.getElementById('chart-hourly-vol').getContext('2d'), cfgVol);
+  charts.hourlyCnt = new Chart(document.getElementById('chart-hourly-cnt').getContext('2d'), cfgCnt);
+  charts.hourlyRev = new Chart(document.getElementById('chart-hourly-rev').getContext('2d'), cfgRev);
+  chartConfigs['chart-hourly-vol'] = cfgVol;
+  chartConfigs['chart-hourly-cnt'] = cfgCnt;
+  chartConfigs['chart-hourly-rev'] = cfgRev;
+}
+
+// ─── BANKA ANALİZİ ──────────────────────────────────────
+function buildBankChart() {
+  // Kurumsal cüzdandan EFT = "Yurtiçi Banka Hesabına Transfer" + açıklamada banka adı
+  const eftRows = RAW.filter(r => r.islem_adi === 'Yurtiçi Banka Hesabına Transfer');
+
+  const byBank = {};
+  eftRows.forEach(r => {
+    const banka = extractBank(r.aciklama);
+    if (!byBank[banka]) byBank[banka] = { adet: 0, hacim: 0 };
+    byBank[banka].adet++;
+    byBank[banka].hacim += r.tutar;
+  });
+
+  const sorted = Object.entries(byBank).sort((a,b) => b[1].adet - a[1].adet);
+  const maxAdet = sorted[0]?.[1]?.adet || 1;
+  const labels  = sorted.map(([k]) => k);
+  const data    = sorted.map(([,v]) => v.adet);
+
+  // Horizontal bar chart
+  const palette = ['#EE7623','#2B6CB0','#27AE60','#805AD5','#D4651A','#2C7A7B','#744210','#C53030','#1A365D','#276749'];
+  const cfg = {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: palette.slice(0, data.length), borderRadius: 5, borderWidth: 0 }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false, animation: { duration: 400 },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => c.raw + ' işlem' } }
+      },
+      scales: {
+        x: { ticks: { font:{size:10}, color:'#718096' }, grid: { color:'#EDF2F7' } },
+        y: { ticks: { font:{size:11}, color:'#323E48' }, grid: { display: false } }
+      }
+    }
+  };
+
+  charts.bank = new Chart(document.getElementById('chart-bank').getContext('2d'), cfg);
+  chartConfigs['chart-bank'] = cfg;
+
+  // Rank list
+  document.getElementById('bank-rank-list').innerHTML = sorted.length === 0
+    ? '<div style="color:var(--muted);font-size:13px;padding:12px 0">EFT işlemi bulunamadı</div>'
+    : sorted.map(([banka, v], i) => `
+      <div class="bank-rank">
+        <div class="bank-rank-num">${i+1}</div>
+        <div class="bank-rank-name">${banka}</div>
+        <div class="bank-rank-bar">
+          <div class="prog-bar"><div class="prog-fill" style="width:${(v.adet/maxAdet*100).toFixed(1)}%"></div></div>
+        </div>
+        <div class="bank-rank-adet">${v.adet} işlem</div>
+        <div style="font-size:11px;color:var(--muted);min-width:72px;text-align:right">₺${fmtK(v.hacim)}</div>
+      </div>`).join('');
+}
+
+// ─── TYPE CHARTS ────────────────────────────────────────
+function buildTypeCharts() {
+  const byType = {};
+  RAW.forEach(r => {
+    if (!byType[r.islem_adi]) byType[r.islem_adi] = {adet:0, hacim:0};
+    byType[r.islem_adi].adet++;
+    byType[r.islem_adi].hacim += r.tutar;
+  });
+  const sorted = Object.entries(byType).sort((a,b) => b[1].adet - a[1].adet);
+  const labels = sorted.map(([k]) => shortName(k));
+  const cnts   = sorted.map(([,v]) => v.adet);
+  const vols   = sorted.map(([,v]) => v.hacim);
+  const pal = ['#EE7623','#2B6CB0','#27AE60','#805AD5','#D4651A','#2C7A7B','#744210','#1A365D','#276749','#553C9A','#702459','#C53030','#2D3748','#F6AD55'];
+
+  const cfgCnt = doughnutConfig(labels, cnts, pal, v=>v+' işlem');
+  const cfgVol = doughnutConfig(labels, vols, pal, v=>'₺'+fmtK(v));
+  charts.typeCnt = new Chart(document.getElementById('chart-type-cnt').getContext('2d'), cfgCnt);
+  charts.typeVol = new Chart(document.getElementById('chart-type-vol').getContext('2d'), cfgVol);
+  chartConfigs['chart-type-cnt'] = cfgCnt;
+  chartConfigs['chart-type-vol'] = cfgVol;
+}
+
+// ─── GELİR TABLE ────────────────────────────────────────
+function buildGelirTable(p) {
+  const byType = {};
+  RAW.forEach(r => {
+    if (!byType[r.islem_adi]) byType[r.islem_adi] = {adet:0,hacim:0,masraf:0,param:0};
+    const g = calcGelir(r, p);
+    byType[r.islem_adi].adet++;
+    byType[r.islem_adi].hacim  += r.tutar;
+    byType[r.islem_adi].masraf += g.masraf;
+    byType[r.islem_adi].param  += g.parametre;
+  });
+  const rows = Object.entries(byType).sort((a,b) => (b[1].masraf+b[1].param)-(a[1].masraf+a[1].param));
+  const topHacim = rows.reduce((s,[,v])=>s+v.hacim,0);
+  const totM = rows.reduce((s,[,v])=>s+v.masraf,0);
+  const totP = rows.reduce((s,[,v])=>s+v.param,0);
+
+  const badge = n => {
+    if (n==='Ödeme Alma')           return `<span class="badge badge-param">%${document.getElementById('p-odeme-alma').value}</span>`;
+    if (n==='Yurtdışı Banka Hesabına Para Gönderme') return `<span class="badge badge-param">%${document.getElementById('p-yurtdisi').value}</span>`;
+    if (n==='Kart Harcama')         return `<span class="badge badge-param">%${document.getElementById('p-kart').value}</span>`;
+    if (n==='Fiziksel Kart Edinimi') return `<span class="badge badge-param">₺${document.getElementById('p-fiziksel').value} sabit</span>`;
+    if (rows.find(([k])=>k===n)?.[1]?.masraf>0) return `<span class="badge badge-masraf">Masraf</span>`;
+    return `<span style="color:#A0AEC0;font-size:11px">—</span>`;
+  };
+
+  document.getElementById('gelir-tbody').innerHTML = rows.map(([n,v]) => {
+    const tot = v.masraf+v.param;
+    const pct = topHacim>0 ? v.hacim/topHacim*100 : 0;
+    return `<tr>
+      <td>${n}</td><td>${badge(n)}</td>
+      <td class="num" style="text-align:right">${fmt0(v.adet)}</td>
+      <td class="num" style="text-align:right">${fmt2(v.hacim)}</td>
+      <td class="num num-orange" style="text-align:right">${v.masraf>0?fmt2(v.masraf):'—'}</td>
+      <td class="num num-orange" style="text-align:right">${v.param>0?fmt2(v.param):'—'}</td>
+      <td class="num num-green" style="text-align:right">${tot>0?fmt2(tot):'—'}</td>
+      <td><div class="prog-wrap">
+        <div class="prog-bar"><div class="prog-fill" style="width:${pct.toFixed(1)}%"></div></div>
+        <span style="font-size:11px;color:var(--muted);min-width:36px;text-align:right">${pct.toFixed(1)}%</span>
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('gelir-tfoot').innerHTML = `
+    <tr style="font-weight:700;background:var(--bg)">
+      <td colspan="2">TOPLAM</td>
+      <td class="num" style="text-align:right">${fmt0(rows.reduce((s,[,v])=>s+v.adet,0))}</td>
+      <td class="num" style="text-align:right">${fmt2(topHacim)}</td>
+      <td class="num num-orange" style="text-align:right">${fmt2(totM)}</td>
+      <td class="num num-orange" style="text-align:right">${fmt2(totP)}</td>
+      <td class="num num-green" style="text-align:right">${fmt2(totM+totP)}</td>
+      <td></td>
+    </tr>`;
+}
+
+// ─── TX TABLE ───────────────────────────────────────────
+function filterTable() {
+  const q = document.getElementById('tx-search').value.toLowerCase();
+  FILTERED = RAW.filter(r => r.islem_adi.toLowerCase().includes(q) || r.aciklama.toLowerCase().includes(q));
+  PAGE = 1;
+  renderTxTable(getParams());
+}
+
+function renderTxTable(p) {
+  const slice = FILTERED.slice((PAGE-1)*PER_PAGE, PAGE*PER_PAGE);
+  document.getElementById('tx-tbody').innerHTML = slice.map(r => {
+    const g = calcGelir(r,p);
+    return `<tr>
+      <td style="white-space:nowrap;font-variant-numeric:tabular-nums">${r.saat}</td>
+      <td>${r.islem_adi}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)">${r.aciklama}</td>
+      <td class="num" style="text-align:right">${fmt2(r.tutar)}</td>
+      <td class="num" style="text-align:right">${r.masraf>0?fmt2(r.masraf):'—'}</td>
+      <td class="${r.yon==='C'?'yon-c':'yon-d'}" style="text-align:center">${r.yon==='C'?'▲ Giriş':'▼ Çıkış'}</td>
+      <td class="num num-green" style="text-align:right">${g.total>0?fmt2(g.total):'—'}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted)">Sonuç bulunamadı</td></tr>';
+
+  const total = Math.ceil(FILTERED.length / PER_PAGE);
+  let pag = `<button class="page-btn" onclick="goPage(${PAGE-1})" ${PAGE<=1?'disabled':''}>‹</button>`;
+  for (let i=1;i<=total;i++) {
+    if (i===1||i===total||Math.abs(i-PAGE)<=1)
+      pag += `<button class="page-btn ${i===PAGE?'active':''}" onclick="goPage(${i})">${i}</button>`;
+    else if (Math.abs(i-PAGE)===2) pag += `<span>…</span>`;
+  }
+  pag += `<button class="page-btn" onclick="goPage(${PAGE+1})" ${PAGE>=total?'disabled':''}>›</button><span>${FILTERED.length} işlem</span>`;
+  document.getElementById('pagination').innerHTML = pag;
+}
+
+function goPage(n) {
+  const total = Math.ceil(FILTERED.length/PER_PAGE);
+  if (n<1||n>total) return;
+  PAGE = n;
+  renderTxTable(getParams());
+}
+
+// ─── FULLSCREEN MODAL ───────────────────────────────────
+function expandChart(sourceId, title, sub) {
+  const cfg = chartConfigs[sourceId];
+  if (!cfg) return;
+
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-sub').textContent = sub;
+
+  if (modalChart) { modalChart.destroy(); modalChart = null; }
+
+  // Deep clone config for modal (larger)
+  const modalCfg = JSON.parse(JSON.stringify(cfg));
+
+  // Make modal version bigger / more readable
+  if (modalCfg.options?.scales?.x?.ticks) modalCfg.options.scales.x.ticks.font = {size:12};
+  if (modalCfg.options?.scales?.y?.ticks) modalCfg.options.scales.y.ticks.font = {size:12};
+  if (modalCfg.options?.plugins?.legend?.labels) modalCfg.options.plugins.legend.labels.font = {size:12};
+  if (modalCfg.options?.animation) modalCfg.options.animation.duration = 300;
+
+  const canvas = document.getElementById('modal-canvas');
+  // Reset canvas
+  const parent = canvas.parentElement;
+  const newCanvas = document.createElement('canvas');
+  newCanvas.id = 'modal-canvas';
+  parent.replaceChild(newCanvas, canvas);
+
+  modalChart = new Chart(newCanvas.getContext('2d'), modalCfg);
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModalDirect();
+}
+function closeModalDirect() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  if (modalChart) { modalChart.destroy(); modalChart = null; }
+}
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeModalDirect(); });
+
+// ─── CHART CONFIG BUILDERS ──────────────────────────────
+function lineConfig(labels, data, color, bgColor, tooltipFmt) {
+  return {
+    type: 'line',
+    data: { labels, datasets: [{ label: '', data, borderColor: color, backgroundColor: bgColor, tension: .3, fill: true, pointRadius: 3, borderWidth: 2 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 400 },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => tooltipFmt ? tooltipFmt(c.parsed.y) : c.parsed.y } } },
+      scales: {
+        x: { ticks: { font:{size:9}, maxRotation: 45, color:'#718096' }, grid: { display: false } },
+        y: { ticks: { font:{size:10}, color:'#718096', callback: v => v>=1e6?(v/1e6).toFixed(1)+'M':v>=1000?(v/1000).toFixed(0)+'K':v }, grid: { color:'#EDF2F7' } }
+      }
+    }
+  };
+}
+
+function barConfig(labels, data, color, tooltipFmt) {
+  return {
+    type: 'bar',
+    data: { labels, datasets: [{ label: '', data, backgroundColor: color, borderRadius: 4, borderWidth: 0 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 400 },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => tooltipFmt ? tooltipFmt(c.parsed.y) : c.parsed.y } } },
+      scales: {
+        x: { ticks: { font:{size:9}, maxRotation:45, color:'#718096' }, grid: { display: false } },
+        y: { ticks: { font:{size:10}, color:'#718096' }, grid: { color:'#EDF2F7' } }
+      }
+    }
+  };
+}
+
+function doughnutConfig(labels, data, colors, tooltipFmt) {
+  return {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#fff', hoverOffset: 6 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 400 },
+      cutout: '55%',
+      plugins: {
+        legend: { position: 'right', labels: { font:{size:10}, boxWidth:12, padding:8 } },
+        tooltip: { callbacks: { label: c => c.label + ': ' + (tooltipFmt ? tooltipFmt(c.raw) : c.raw) } }
+      }
+    }
+  };
+}
+
+function destroyCharts() {
+  Object.values(charts).forEach(c => { try { c.destroy(); } catch(e){} });
+  charts = {};
+  chartConfigs = {};
+}
+
+// ─── FORMAT ─────────────────────────────────────────────
+function fmt2(n) { return (Math.round(n*100)/100).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmt0(n) { return Math.round(n).toLocaleString('tr-TR'); }
+function fmtK(n) { if(n>=1e6) return (n/1e6).toFixed(2)+'M'; if(n>=1000) return (n/1000).toFixed(1)+'K'; return fmt2(n); }
+function shortName(s) {
+  const m = {
+    'Cüzdana Para Yatırma':'Cüzdan Yatırma','Karta Para Gönderme':'Karta Gönder',
+    'İsme Para Gönderme':'İsme Gönder','Yurtiçi Banka Hesabına Transfer':'Yurtiçi EFT',
+    'Yurtdışı Banka Hesabına Para Gönderme':'Yurtdışı','Bankaya Para Çekme - EFT':'Banka Çekme EFT',
+    'Bankaya Para Çekme - Havale':'Banka Çekme Hav.','Diger Cuzdana Para Gonderme':'Cüzdan→Cüzdan',
+  };
+  return m[s] || s;
+}
+</script>
+</body>
+</html>
